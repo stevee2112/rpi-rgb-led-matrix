@@ -1,5 +1,5 @@
 #!/usr/bin/python
-from distutils.core import setup, Extension
+from setuptools import setup, Extension
 
 core_ext = Extension(
     name                = 'core',
@@ -29,5 +29,7 @@ setup(
     classifiers         = ['Development Status :: 3 - Alpha'],
     ext_package         = 'rgbmatrix',
     ext_modules         = [core_ext, graphics_ext],
-    packages            = ['rgbmatrix']
+    packages            = ['rgbmatrix'],
+    scripts             = ['pixelframe/pixelframe'],
+    install_requires    = ['redis'],
 )
