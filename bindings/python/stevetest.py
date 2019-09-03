@@ -5,14 +5,12 @@ import sys
 import os
 import json
 import time
-import redis
-import time
 from pprint import pprint
-from collections import deque
 
+sys.path.append(os.path.abspath(os.path.dirname(__file__) + '/'))
 from rgbmatrix import RGBMatrix, RGBMatrixOptions
 
-class PixelFrame():
+class GrayscaleBlock():
     def __init__(self, *args, **kwargs):
 
         self.parser = argparse.ArgumentParser()
@@ -31,13 +29,8 @@ class PixelFrame():
         self.parser.add_argument("--led-rgb-sequence", action="store", help="Switch if your matrix has led colors swapped. Default: RGB", default="RGB", type=str)
 
 
-        self.default_fps = 2
+        self.fps = 2
         self.brightness = 50
-        self.art_dir = "/home/senglert/pixelart/"
-        self.gallery_dir = "gallery" # Relative to art dir
-        self.default_duration = 60
-        self.default_file = "art.json"
-        self.art_queue = deque([])
 
     def usleep(self, value):
         time.sleep(value / 1000000.0)
@@ -76,65 +69,9 @@ class PixelFrame():
 
         return True
 
-    def run(self):
+    def showFrame(self, frame):
 
-        self.matrix.brightness = self.brightness
-
-        r = redis.Redis(host='localhost');
-        timeout = None
-        fps = 1
-        frames = []
-
-        self.loadGalleryArt()
-
-        while True:
-
-            if ((time.time() > timeout) or (timeout is None) or (r.get('PIXELFRAME_INTERRUPT'))):
-                picture = r.get('PIXELFRAME_NEXT') or r.get('PIXELFRAME_DEFAULT') or self.getNextFromGallery() or self.default_file
-                r.delete('PIXELFRAME_NEXT')
-                r.delete('PIXELFRAME_INTERRUPT')
-                with open(self.art_dir + picture) as data_file:
-                    data = json.load(data_file)
-
-                fps = data['fps'] or self.default_fps
-                frames = data['frames']
-                seconds = int(r.get('PIXELFRAME_NEXT_TIMEOUT') or r.get('PIXELFRAME_DEFAULT_TIMEOUT') or self.default_duration)
-                timeout = time.time() + seconds
-                r.delete('PIXELFRAME_NEXT_TIMEOUT')
-
-                print(picture + " for " + str(seconds) + " seconds");
-
-            frame = frames.pop(0)
-            newFrame = list(frame)
-            self.showFrame(frame, fps)
-            frames.append(newFrame)
-
-    def getGallery(self):
-        r = redis.Redis(host='localhost');
-        gallery = r.get('PIXELFRAME_GALLERY') or self.gallery_dir
-        return gallery + "/"
-
-    def loadGalleryArt(self):
-        for file in os.listdir(self.art_dir + self.getGallery()):
-            if file.endswith(".json"):
-                self.art_queue.append(file)
-
-    def getNextFromGallery(self):
-
-        if (len(self.art_queue) == 0):
-            return None
-
-        # Get next
-        next = self.art_queue.popleft()
-
-        # Return to end of line
-        self.art_queue.append(next)
-
-        return self.getGallery() + next;
-
-    def showFrame(self, frame, fps):
-
-        for r in range (32):
+        for r in range(32):
             for c in range(32):
                 if frame:
                     color = frame.pop(0)
@@ -145,10 +82,24 @@ class PixelFrame():
 
                     self.matrix.SetPixel(c,r,rColor, gColor, bColor);
 
-        time.sleep((1.0 / fps))
+        time.sleep((1.0 / self.fps))
+
+    def run(self):
+
+        self.matrix.brightness = self.brightness
+
+        with open('art.json') as data_file:
+            data = json.load(data_file)
+
+        while True:
+            frame = data.pop(0)
+            newFrame = list(frame)
+            self.showFrame(frame)
+            data.append(newFrame)
+
 
 # Main function
 if __name__ == "__main__":
-    pixelframe = PixelFrame()
-    if (not pixelframe.process()):
-        pixelframe.print_help()
+    grayscale_block = GrayscaleBlock()
+    if (not grayscale_block.process()):
+        grayscale_block.print_help()

@@ -1,0 +1,10 @@
+setup.py
+pixelframe/pixelframe
+rgbmatrix/__init__.py
+rgbmatrix/core.cpp
+rgbmatrix/graphics.cpp
+rgbmatrix.egg-info/PKG-INFO
+rgbmatrix.egg-info/SOURCES.txt
+rgbmatrix.egg-info/dependency_links.txt
+rgbmatrix.egg-info/requires.txt
+rgbmatrix.egg-info/top_level.txt
